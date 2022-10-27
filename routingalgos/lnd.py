@@ -1,5 +1,5 @@
 from queue import  PriorityQueue
-from routingalgos.base import Routing
+from base import Routing
 from math import inf
 
 class LNDRouting(Routing):
