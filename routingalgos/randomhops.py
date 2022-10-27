@@ -1,4 +1,4 @@
-from routingalgos.base import Routing
+from base import Routing
 from secrets import randbelow, choice
 import math
 from queue import PriorityQueue
