@@ -7,13 +7,13 @@ import string
 import re
 import ast
 
-PATH = "data/snapshot-01-09-2021/"
+PATH = "data/Snapshot"
 
 # read node information and initialize the graph with the nodes
 def populate_nodes(G, tech=-1):
     node_list = []
     map = dict()
-    with open(PATH + "nodes.csv", 'r') as csv_file:
+    with open(PATH + "nodes1.csv", 'r') as csv_file:
         csvreader = csv.reader(csv_file)
         line = 0
         for row in csvreader:
