@@ -22,8 +22,8 @@ class LNDRouting(Routing):
     def cost_function(self, G, amount, u, v):
         # if direct_conn:
         #     return amount[v] * G.edges[v, u]["Delay"] * LND_RISK_FACTOR
-        fee = G.edges[v,u]['BaseFee'] + amount * G.edges[v, u]['FeeRate']
-        alt = (amount+fee) * G.edges[v, u]["Delay"] * self.LND_RISK_FACTOR + fee
+        fee = G.edges[v,u]['fee_base_sat'] + amount * G.edges[v, u]['fee_rate_sat']
+        alt = (amount+fee) * G.edges[v, u]["delay"] * self.LND_RISK_FACTOR + fee
 
         # t = G.edges[v, u]["LastFailure"]
         # edge_proba = edge_prob(t)
@@ -33,7 +33,7 @@ class LNDRouting(Routing):
 
     # cost function for first hop: sender does not take a fee
     def cost_function_no_fees(self, G, amount, u, v):
-        return amount*G.edges[v,u]["Delay"]*self.LND_RISK_FACTOR
+        return amount*G.edges[v,u]["delay"]*self.LND_RISK_FACTOR
 
 
     # construct route using lnd algorithm (uses ordinary dijkstra)
