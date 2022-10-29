@@ -48,10 +48,10 @@ class EclairRouting(Routing):
     def cost_function(self, G, amount, u, v):
         # if direct_conn:
         #     return 0
-        fee = G.edges[v,u]['BaseFee'] + amount * G.edges[v,u]['FeeRate']
-        ndelay = self.normalize(G.edges[v, u]["Delay"], self.MIN_DELAY, self.MAX_DELAY)
-        ncapacity = 1 - (self.normalize((G.edges[v, u]["Balance"] + G.edges[u, v]["Balance"]), self.MIN_CAP, self.MAX_CAP))
-        nage = self.normalize(self.CBR - G.edges[v, u]["Age"], self.MIN_AGE, self.MAX_AGE)
+        fee = G.edges[v,u]['fee_base_sat'] + amount * G.edges[v,u]['fee_rate_sat']
+        ndelay = self.normalize(G.edges[v, u]["delay"], self.MIN_DELAY, self.MAX_DELAY)
+        ncapacity = 1 - (self.normalize((G.edges[v, u]["balance_sat"] + G.edges[u, v]["balance_sat"]), self.MIN_CAP, self.MAX_CAP))
+        nage = self.normalize(self.CBR - G.edges[v, u]["age"], self.MIN_AGE, self.MAX_AGE)
         alt = fee * (ndelay * self.DELAY_RATIO + ncapacity * self.CAPACITY_RATIO + nage * self.AGE_RATIO)
         return alt
 
@@ -79,9 +79,9 @@ class EclairRouting(Routing):
         dist = 0
         # recalculate based on chosen path
         for m in range(len(path) - 2, 0, -1):
-            delay += G.edges[path[m], path[m + 1]]["Delay"]
-            amount += G.edges[path[m], path[m + 1]]["BaseFee"] + amount * G.edges[path[m], path[m + 1]]["FeeRate"]
-        delay += G.edges[path[0], path[1]]["Delay"]
+            delay += G.edges[path[m], path[m + 1]]["delay"]
+            amount += G.edges[path[m], path[m + 1]]["fee_base_sat"] + amount * G.edges[path[m], path[m + 1]]["fee_rate_sat"]
+        delay += G.edges[path[0], path[1]]["delay"]
         return {"path": path, "delay": delay, "amount": amount, "dist": dist}
 
     # Generalized Dijkstra for 3 best paths - alternative to yen's algo
@@ -158,14 +158,14 @@ class EclairRouting(Routing):
                 di = dist2[curr]
             visited[curr]+=1
             for [v, curr] in G.in_edges(curr):
-                if payment_source and v == source and G.edges[v, curr]["Balance"] >= a:
+                if payment_source and v == source and G.edges[v, curr]["balance_sat"] >= a:
                     #return [v] + paths[curr], delay[curr] + G.edges[v, curr]["Delay"], amount[curr], dist[curr]
                     path[k]= [v] + p
                     k+=1
                     if k == 3:
                         # print(path)
                         return path
-                if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= a) and visited[v]<3 and v not in p:
+                if (G.edges[v, curr]["balance_sat"] + G.edges[curr, v]["balance_sat"] >= a) and visited[v]<3 and v not in p:
                     if (v != source or not payment_source):
                         cost = di + self.cost_function(G, a, curr, v)
 
@@ -180,8 +180,8 @@ class EclairRouting(Routing):
                             amount1[v] = amount[v]
                             dist[v] = cost
                             paths[v] = [v] + p
-                            delay[v] = G.edges[v, curr]["Delay"] + d
-                            amount[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                            delay[v] = G.edges[v, curr]["delay"] + d
+                            amount[v] = a + G.edges[v, curr]["fee_base_sat"] + a * G.edges[v, curr]["fee_rate_sat"]
                             pq.put((dist[v], v))
                         elif cost < dist1[v]:
                             dist2[v] = dist1[v]
@@ -190,14 +190,14 @@ class EclairRouting(Routing):
                             amount2[v] = amount1[v]
                             dist1[v] = cost
                             paths1[v] = [v] + p
-                            delay1[v] = G.edges[v, curr]["Delay"] + d
-                            amount1[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                            delay1[v] = G.edges[v, curr]["delay"] + d
+                            amount1[v] = a + G.edges[v, curr]["fee_base_sat"] + a * G.edges[v, curr]["fee_rate_sat"]
                             pq.put((dist1[v], v))
                         elif cost < dist2[v]:
                             dist2[v] = cost
                             paths2[v] = [v] + p
-                            delay2[v] = G.edges[v, curr]["Delay"] + d
-                            amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                            delay2[v] = G.edges[v, curr]["delay"] + d
+                            amount2[v] = a + G.edges[v, curr]["fee_base_sat"] + a * G.edges[v, curr]["fee_rate_sat"]
                             pq.put((dist2[v], v))
         return [], -1, -1, -1
 
@@ -302,7 +302,7 @@ class EclairRouting(Routing):
                 elif done[v] == 2 and (self.ignore_tech or G.nodes[v]["Tech"] == 2):
                     path2[v] = [v] + p
                     done[v] = 3
-                if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= a) and visited[v] < 3 and v not in p:
+                if (G.edges[v, curr]["balance_sat"] + G.edges[curr, v]["balance_sat"] >= a) and visited[v] < 3 and v not in p:
                     cost = di + self.cost_function(G, a, curr, v)
 
                     if cost < dist[v]:
@@ -316,8 +316,8 @@ class EclairRouting(Routing):
                         amount1[v] = amount[v]
                         dist[v] = cost
                         paths[v] = [v] + p
-                        delay[v] = G.edges[v, curr]["Delay"] + d
-                        amount[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                        delay[v] = G.edges[v, curr]["delay"] + d
+                        amount[v] = a + G.edges[v, curr]["fee_base_sat"] + a * G.edges[v, curr]["fee_rate_sat"]
                         pq.put((dist[v], v))
                     elif cost < dist1[v]:
                         dist2[v] = dist1[v]
@@ -326,14 +326,14 @@ class EclairRouting(Routing):
                         amount2[v] = amount1[v]
                         dist1[v] = cost
                         paths1[v] = [v] + p
-                        delay1[v] = G.edges[v, curr]["Delay"] + d
-                        amount1[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                        delay1[v] = G.edges[v, curr]["delay"] + d
+                        amount1[v] = a + G.edges[v, curr]["fee_base_sat"] + a * G.edges[v, curr]["fee_rate_sat"]
                         pq.put((dist1[v], v))
                     elif cost < dist2[v]:
                         dist2[v] = cost
                         paths2[v] = [v] + p
-                        delay2[v] = G.edges[v, curr]["Delay"] + d
-                        amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                        delay2[v] = G.edges[v, curr]["delay"] + d
+                        amount2[v] = a + G.edges[v, curr]["fee_base_sat"] + a * G.edges[v, curr]["fee_rate_sat"]
                         pq.put((dist2[v], v))
             # If none of the three best paths satisfy the sub-path found then the destination cannot be reached using Eclair
             if(curr in path[1:]):

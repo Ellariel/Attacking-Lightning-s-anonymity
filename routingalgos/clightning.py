@@ -25,14 +25,14 @@ class CLightningRouting(Routing):
         # if direct_conn:
         #     return amount[v] * G.edges[v, u]["Delay"] * C_RISK_FACTOR + RISK_BIAS
         scale = 1 + self.DEFAULT_FUZZ * self.__fuzz
-        fee = scale * (G.edges[v, u]['BaseFee'] + amount * G.edges[v, u]['FeeRate'])
-        alt = ((amount + fee) * G.edges[v, u]["Delay"]
+        fee = scale * (G.edges[v, u]['fee_base_sat'] + amount * G.edges[v, u]['fee_rate_sat'])
+        alt = ((amount + fee) * G.edges[v, u]["delay"]
                * self.C_RISK_FACTOR + self.RISK_BIAS)
         return alt
 
     # cost function for first hop: sender does not take a fee
     def cost_function_no_fees(self, G, amount, u, v):
-        return amount * G.edges[v, u]["Delay"] * self.C_RISK_FACTOR + self.RISK_BIAS
+        return amount * G.edges[v, u]["delay"] * self.C_RISK_FACTOR + self.RISK_BIAS
 
     # construct route using C-lightning algorithm (uses ordinary dijkstra)
     def routePath(self, G, u, v, amt, payment_source=True, target_delay = 0 ):

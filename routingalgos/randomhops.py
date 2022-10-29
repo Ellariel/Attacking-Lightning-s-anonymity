@@ -49,7 +49,7 @@ class RandomHopsRouting(Routing):
     def add_random_hops(self, G, path, amount):
         if len(path) == 2:
             # If there is a direct channel do not add random hops
-            return path, G.edges[path[0], path[1]]["Delay"], amount
+            return path, G.edges[path[0], path[1]]["delay"], amount
         elif len(path) < 2:
             # The path is either not found or incorrect
             return [], -1, -1
@@ -75,9 +75,9 @@ class RandomHopsRouting(Routing):
                         and len(set(modified + [hop])) == len(modified + [hop])
                         # Check for valid hop with no loops
                         and len(set(path + [hop])) == len(path + [hop])
-                        and G.edges[hop, path[i]]["Balance"] + G.edges[path[i], hop]["Balance"] >= amount
+                        and G.edges[hop, path[i]]["balance_sat"] + G.edges[path[i], hop]["balance_sat"] >= amount
                         # Check for enough capacity
-                            and G.edges[hop, path[i + 1]]["Balance"] + G.edges[path[i + 1], hop]["Balance"] >= amount
+                            and G.edges[hop, path[i + 1]]["balance_sat"] + G.edges[path[i + 1], hop]["balance_sat"] >= amount
                         ):
                     possible_hops.append(hop)
 
@@ -85,20 +85,20 @@ class RandomHopsRouting(Routing):
             if len(modified) > 1:
                 a = len(modified) - 1
                 b = len(modified) - 2
-                amount = amount + G.edges[modified[a], modified[b]]["BaseFee"] + (
-                    amount * G.edges[modified[a], modified[b]]["FeeRate"])
+                amount = amount + G.edges[modified[a], modified[b]]["fee_base_sat"] + (
+                    amount * G.edges[modified[a], modified[b]]["fee_rate_sat"])
 
             if len(possible_hops) > 0 and hops_added < hops_to_add:
                 modified.append(choice(possible_hops))
                 hops_added += 1
                 a = len(modified) - 1
                 b = len(modified) - 2
-                amount = amount + G.edges[modified[a], modified[b]]["BaseFee"] + (
-                    amount * G.edges[modified[a], modified[b]]["FeeRate"])
+                amount = amount + G.edges[modified[a], modified[b]]["fee_base_sat"] + (
+                    amount * G.edges[modified[a], modified[b]]["fee_rate_sat"])
         modified.append(path[len(path) - 1])
 
         for i in range(len(modified) - 1):
-            delay = delay + G.edges[modified[i + 1], modified[i]]["Delay"]
+            delay = delay + G.edges[modified[i + 1], modified[i]]["delay"]
 
         # The path was reversed so the return value has to be reversed again
         return modified[::-1], delay, amount
@@ -161,13 +161,13 @@ class RandomHopsRouting(Routing):
             for i in range(0, len(t1)):
                 u = t1[i]
                 for [u, v] in G.out_edges(u):
-                    if(v != pre and v != adversary and v != next and v not in v1[i] and (d1[i] - G.edges[u, v]["Delay"]) >= 0 and (G.edges[u, v]["Balance"]+G.edges[v, u]["Balance"]) >= ((a1[i] - G.edges[u, v]["BaseFee"]) / (1 + G.edges[u, v]["FeeRate"]))):
+                    if(v != pre and v != adversary and v != next and v not in v1[i] and (d1[i] - G.edges[u, v]["delay"]) >= 0 and (G.edges[u, v]["balance_sat"]+G.edges[v, u]["balance_sat"]) >= ((a1[i] - G.edges[u, v]["fee_base_sat"]) / (1 + G.edges[u, v]["fee_rate_sat"]))):
                         t2.append(v)
-                        d2.append(d1[i] - G.edges[u, v]["Delay"])
+                        d2.append(d1[i] - G.edges[u, v]["delay"])
                         p2.append(i)
                         v2.append(v1[i]+[v])
-                        a2.append(((a1[i] - G.edges[u, v]["BaseFee"]
-                                    ) / (1 + G.edges[u, v]["FeeRate"])))
+                        a2.append(((a1[i] - G.edges[u, v]["fee_base_sat"]
+                                    ) / (1 + G.edges[u, v]["fee_rate_sat"])))
             T[level]["nodes"] = t2
             T[level]["delays"] = d2
             T[level]["previous"] = p2
@@ -286,7 +286,7 @@ class RandomHopsRouting(Routing):
                 continue
             visited.add(curr)
             for [v, curr] in G.in_edges(curr):
-                if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= costs[curr]) and v not in visited:
+                if (G.edges[v, curr]["balance_sat"] + G.edges[curr, v]["balance_sat"] >= costs[curr]) and v not in visited:
                     if done[v] == 0:
                         paths1[v] = [v]+paths[curr]
                         done[v] = 1
@@ -294,9 +294,9 @@ class RandomHopsRouting(Routing):
                     if cost < dists[v]:
                         paths[v] = [v]+paths[curr]
                         dists[v] = cost
-                        delays[v] = delays[curr] + G.edges[v, curr]["Delay"]
-                        costs[v] = costs[curr] + G.edges[v, curr]["BaseFee"] + \
-                            costs[curr] * G.edges[v, curr]["FeeRate"]
+                        delays[v] = delays[curr] + G.edges[v, curr]["delay"]
+                        costs[v] = costs[curr] + G.edges[v, curr]["fee_base_sat"] + \
+                            costs[curr] * G.edges[v, curr]["fee_rate_sat"]
                         pq.put((dists[v], v))
             if(curr in path[1:]):
                 ind = path.index(curr)
